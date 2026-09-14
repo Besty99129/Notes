@@ -1,0 +1,779 @@
+
+
+
+一、本周学习目标
+------------------------------------------------------------
+
+本周结束后，你需要做到：
+
+1. 熟悉Linux常用命令。
+2. 理解Linux目录、文件、权限、用户、进程。
+3. 会查看CPU、内存、磁盘、进程、端口。
+4. 会安装并启动Nginx。
+5. 能理解“服务为什么能被访问”。
+6. 能用curl访问本机Web服务。
+7. 能查看Nginx访问日志和错误日志。
+8. 能初步排查“服务访问不了”的问题。
+
+
+二、本周核心理解
+------------------------------------------------------------
+
+你要重点理解这条链路：
+
+用户访问服务
+    ↓
+域名解析成IP
+    ↓
+客户端连接服务器IP和端口
+    ↓
+服务器上有进程监听该端口
+    ↓
+服务进程处理请求
+    ↓
+返回响应
+    ↓
+写入访问日志或错误日志
+
+如果服务访问不了，排查方向一般是：
+
+1. 服务是否启动？
+2. 端口是否监听？
+3. 本机是否能访问？
+4. IP是否正确？
+5. 网络是否连通？
+6. 防火墙/安全组是否放行？
+7. 服务日志是否有错误？
+
+
+============================================================
+第1天：Linux环境和基础命令
+============================================================
+
+学习目标：
+
+熟悉Linux基础操作，知道如何查看系统信息、目录、文件内容。
+
+
+任务1：确认实验环境
+
+推荐系统：
+
+1. Ubuntu 22.04 / 24.04
+2. CentOS 7
+3. Rocky Linux 9
+
+如果你不确定，建议使用 Ubuntu 22.04。
+
+
+任务2：查看系统信息
+
+执行命令：
+
+whoami
+hostname
+uname -a
+cat /etc/os-release
+ip addr
+pwd
+
+你需要知道：
+
+whoami              查看当前用户
+hostname            查看主机名
+uname -a            查看内核信息
+cat /etc/os-release 查看系统版本
+ip addr             查看IP地址
+pwd                 查看当前所在目录
+
+
+任务3：练习目录和文件命令
+
+执行命令：
+
+pwd
+ls
+ls -l
+ls -a
+cd /tmp
+mkdir sre-test
+cd sre-test
+touch a.txt
+echo "hello sre" > a.txt
+cat a.txt
+cp a.txt b.txt
+mv b.txt c.txt
+rm c.txt
+
+重点理解：
+
+ls -l       查看文件详细信息
+ls -a       查看隐藏文件
+mkdir       创建目录
+touch       创建空文件
+echo        输出内容
+>           覆盖写入
+>>          追加写入
+cp          复制
+mv          移动/改名
+rm          删除
+
+
+任务4：查看文件内容
+
+执行命令：
+
+cat /etc/os-release
+head /etc/passwd
+tail /etc/passwd
+less /etc/passwd
+
+创建测试日志：
+
+for i in {1..100}; do echo "this is log line $i" >> test.log; done
+
+查看日志：
+
+head test.log
+tail test.log
+tail -f test.log
+
+再打开另一个终端执行：
+
+echo "new log line" >> test.log
+
+观察 tail -f 是否实时显示新内容。
+
+
+第1天复盘问题：
+
+1. cat、less、head、tail 有什么区别？
+2. tail -f 常用于什么场景？
+3. > 和 >> 有什么区别？
+4. /tmp 目录一般用来做什么？
+5. 如何查看当前Linux系统版本？
+6. 如何查看当前机器IP？
+
+
+============================================================
+第2天：权限、用户、进程
+============================================================
+
+学习目标：
+
+理解Linux权限和进程，这是运维排障的基础。
+
+
+任务1：理解文件权限
+
+进入测试目录：
+
+cd /tmp/sre-test
+ls -l
+
+你会看到类似：
+
+-rw-r--r-- 1 user user 10 Sep 14 test.log
+
+重点看：
+
+-rw-r--r--
+
+含义：
+
+第1位：文件类型
+-      普通文件
+d      目录
+l      软链接
+
+后面9位分成三组：
+
+rw-    文件所有者权限
+r--    文件所属组权限
+r--    其他用户权限
+
+r      read，读
+w      write，写
+x      execute，执行
+
+
+任务2：练习chmod
+
+创建脚本：
+
+echo 'echo "hello shell"' > hello.sh
+ls -l hello.sh
+./hello.sh
+
+如果提示 Permission denied，说明没有执行权限。
+
+添加执行权限：
+
+chmod +x hello.sh
+ls -l hello.sh
+./hello.sh
+
+再修改权限：
+
+chmod 644 hello.sh
+ls -l hello.sh
+./hello.sh
+
+此时可能再次无法直接执行。
+
+但是可以这样执行：
+
+bash hello.sh
+
+你需要理解：
+
+1. ./hello.sh 需要文件本身有 x 执行权限。
+2. bash hello.sh 是让 bash 解释器读取脚本内容执行。
+3. chmod +x 是添加执行权限。
+4. chmod 755 表示：
+   所有者：读、写、执行
+   所属组：读、执行
+   其他人：读、执行
+
+
+任务3：查看进程
+
+执行：
+
+ps aux | head
+top
+
+安装Nginx：
+
+Ubuntu：
+
+sudo apt update
+sudo apt install -y nginx
+
+CentOS/Rocky：
+
+sudo yum install -y nginx
+
+启动Nginx：
+
+sudo systemctl start nginx
+sudo systemctl status nginx
+
+查看Nginx进程：
+
+ps aux | grep nginx
+
+
+第2天复盘问题：
+
+1. Linux权限里的r、w、x分别是什么意思？
+2. chmod 755 file 表示什么？
+3. ps aux | grep nginx 的作用是什么？
+4. systemctl start nginx 是什么作用？
+5. systemctl status nginx 能看到什么？
+
+
+============================================================
+第3天：端口、服务、HTTP访问
+============================================================
+
+学习目标：
+
+理解服务监听端口，以及客户端如何访问服务。
+
+
+任务1：查看Nginx是否监听端口
+
+执行：
+
+ss -lntp
+
+或者：
+
+sudo ss -lntp | grep nginx
+
+你可能会看到类似：
+
+LISTEN 0 511 0.0.0.0:80 0.0.0.0:* users:(("nginx",pid=xxx,fd=xx))
+
+重点理解：
+
+LISTEN       表示正在监听
+0.0.0.0:80   表示监听所有网卡的80端口
+127.0.0.1:80 表示只监听本机回环地址
+80           HTTP默认端口
+
+
+任务2：用curl访问服务
+
+本机访问：
+
+curl http://127.0.0.1
+
+如果知道虚拟机IP，比如 192.168.56.10：
+
+curl http://192.168.56.10
+
+也可以在宿主机浏览器访问：
+
+http://虚拟机IP
+
+
+任务3：查看Nginx日志
+
+Ubuntu常见路径：
+
+/var/log/nginx/access.log
+/var/log/nginx/error.log
+
+查看访问日志：
+
+sudo tail -f /var/log/nginx/access.log
+
+然后再执行：
+
+curl http://127.0.0.1
+
+观察日志是否变化。
+
+
+第3天复盘问题：
+
+1. 什么叫“服务监听端口”？
+2. ss -lntp 每个参数是什么意思？
+3. 127.0.0.1 和本机IP有什么区别？
+4. Nginx默认监听哪个端口？
+5. Nginx访问日志和错误日志分别有什么用？
+
+
+============================================================
+第4天：网络排查基础
+============================================================
+
+学习目标：
+
+掌握最基础的网站访问排查流程。
+
+
+任务1：常用网络命令
+
+执行：
+
+ping www.baidu.com
+curl -I http://www.baidu.com
+nslookup www.baidu.com
+ip route
+ip addr
+
+如果有dig，也可以执行：
+
+dig www.baidu.com
+
+
+任务2：理解DNS
+
+DNS的作用：
+
+把域名解析成IP地址。
+
+例如：
+
+www.baidu.com
+    ↓
+DNS解析
+    ↓
+得到服务器IP
+    ↓
+连接服务器
+    ↓
+发送HTTP请求
+    ↓
+返回网页内容
+
+
+任务3：模拟排查网站访问不了
+
+假设你访问：
+
+curl http://你的虚拟机IP
+
+访问不了，可以按下面顺序排查。
+
+
+第一步：服务是否启动？
+
+systemctl status nginx
+
+
+第二步：端口是否监听？
+
+ss -lntp | grep :80
+
+
+第三步：本机能不能访问？
+
+curl http://127.0.0.1
+
+
+第四步：IP是否正确？
+
+ip addr
+
+
+第五步：网络是否通？
+
+宿主机执行：
+
+ping 虚拟机IP
+
+
+第六步：防火墙是否拦截？
+
+Ubuntu：
+
+sudo ufw status
+
+CentOS/Rocky：
+
+sudo firewall-cmd --state
+sudo firewall-cmd --list-all
+
+
+第4天复盘问题：
+
+1. DNS是干什么的？
+2. ping能证明HTTP服务正常吗？
+3. curl -I 是什么作用？
+4. 如果能ping通，但浏览器访问不了80端口，可能是什么原因？
+5. 如果本机curl 127.0.0.1成功，但宿主机访问失败，可能是什么原因？
+
+
+============================================================
+第5天：CPU、内存、磁盘排查
+============================================================
+
+学习目标：
+
+掌握基础资源排查方法。
+
+
+任务1：查看CPU和内存
+
+执行：
+
+top
+free -h
+uptime
+
+如果想用更友好的工具：
+
+sudo apt install -y htop
+htop
+
+
+任务2：查看磁盘空间
+
+执行：
+
+df -h
+du -sh /var/log
+du -sh /*
+
+说明：
+
+df -h      查看磁盘分区使用情况
+du -sh     查看某个目录实际占用空间
+
+
+任务3：查看inode
+
+执行：
+
+df -i
+
+理解：
+
+磁盘满不一定是容量满，也可能是inode用完。
+
+大量小文件可能导致inode耗尽。
+
+比如：
+
+日志碎片文件很多
+缓存小文件很多
+临时文件很多
+
+
+第5天复盘问题：
+
+1. top可以看到哪些信息？
+2. free -h怎么看内存？
+3. df -h 和 du -sh 有什么区别？
+4. 什么是inode？
+5. 磁盘满了你会怎么排查？
+
+
+============================================================
+第6天：综合实验 - 部署一个静态网站
+============================================================
+
+实验目标：
+
+用Nginx部署一个简单静态网站，并监听8080端口。
+
+
+任务1：创建网页目录
+
+执行：
+
+sudo mkdir -p /data/www
+echo "Hello SRE, this is my first web service" | sudo tee /data/www/index.html
+
+
+任务2：创建Nginx配置
+
+Ubuntu路径：
+
+/etc/nginx/sites-available/
+
+创建配置文件：
+
+sudo vim /etc/nginx/sites-available/sre-test
+
+写入以下内容：
+
+server {
+    listen 8080;
+    server_name _;
+
+    root /data/www;
+    index index.html;
+
+    access_log /var/log/nginx/sre-test-access.log;
+    error_log /var/log/nginx/sre-test-error.log;
+}
+
+
+任务3：启用配置
+
+执行：
+
+sudo ln -s /etc/nginx/sites-available/sre-test /etc/nginx/sites-enabled/
+
+
+任务4：检查配置
+
+执行：
+
+sudo nginx -t
+
+如果显示 successful，说明配置语法正确。
+
+
+任务5：重载Nginx
+
+执行：
+
+sudo systemctl reload nginx
+
+
+任务6：访问服务
+
+执行：
+
+curl http://127.0.0.1:8080
+
+如果正常，应该看到：
+
+Hello SRE, this is my first web service
+
+
+任务7：查看端口
+
+执行：
+
+ss -lntp | grep 8080
+
+
+任务8：查看日志
+
+执行：
+
+sudo tail -f /var/log/nginx/sre-test-access.log
+
+然后再访问：
+
+curl http://127.0.0.1:8080
+
+观察访问日志。
+
+
+如果失败，按这个顺序排查：
+
+1. 检查配置语法
+
+sudo nginx -t
+
+2. 检查Nginx是否运行
+
+systemctl status nginx
+
+3. 检查端口是否监听
+
+ss -lntp | grep 8080
+
+4. 检查网页文件是否存在
+
+ls -l /data/www/index.html
+
+5. 检查本机访问
+
+curl http://127.0.0.1:8080
+
+6. 检查错误日志
+
+sudo tail -n 50 /var/log/nginx/sre-test-error.log
+
+
+第6天复盘问题：
+
+1. Nginx server块的作用是什么？
+2. listen 8080 表示什么？
+3. root /data/www 表示什么？
+4. nginx -t 的作用是什么？
+5. systemctl reload nginx 和 restart nginx 有什么区别？
+6. 如果访问8080失败，你会按什么顺序排查？
+
+
+============================================================
+第7天：总结复盘 + 面试表达
+============================================================
+
+学习目标：
+
+把本周学过的东西整理成自己的语言，为后面面试做准备。
+
+
+任务1：整理本周常用命令
+
+建议你自己整理这些命令的作用：
+
+系统信息：
+
+whoami
+hostname
+uname -a
+cat /etc/os-release
+ip addr
+ip route
+
+文件目录：
+
+pwd
+ls -l
+cd
+mkdir
+touch
+cp
+mv
+rm
+cat
+less
+head
+tail
+tail -f
+
+权限：
+
+chmod
+chown
+ls -l
+
+进程：
+
+ps aux
+top
+systemctl status
+
+端口：
+
+ss -lntp
+
+网络：
+
+ping
+curl
+curl -I
+nslookup
+dig
+
+磁盘内存：
+
+free -h
+df -h
+du -sh
+df -i
+
+
+任务2：整理一个排障流程
+
+题目：
+
+如果Nginx网站访问不了，你怎么排查？
+
+参考回答：
+
+我会先确认服务是否正常运行，使用 systemctl status nginx 查看状态。
+然后使用 ss -lntp 查看80或对应端口是否处于监听状态。
+接着在服务器本机使用 curl 127.0.0.1 测试服务本地是否可访问。
+如果本机可以访问，但外部访问不了，我会继续检查服务器IP是否正确、网络是否连通、防火墙或云安全组是否放行端口。
+同时查看 Nginx 的 access.log 和 error.log，判断请求是否到达服务，以及是否存在配置或权限错误。
+
+
+任务3：整理成项目描述
+
+你可以这样写到简历或面试里：
+
+我在Linux环境中使用Nginx部署过静态Web服务，能够配置server块、监听端口、网站根目录和访问日志。
+在实验中，我将服务监听在8080端口，通过curl进行访问验证，并使用ss查看端口监听状态。
+当服务访问异常时，我会从服务状态、端口监听、本机访问、网络连通、防火墙和日志几个方向进行排查。
+
+
+本周最终检查清单：
+
+[ ] 我知道如何查看Linux系统版本
+[ ] 我知道如何查看服务器IP
+[ ] 我知道如何查看文件内容
+[ ] 我知道Linux的rwx权限含义
+[ ] 我知道如何给脚本添加执行权限
+[ ] 我知道如何启动和查看Nginx状态
+[ ] 我知道如何查看端口监听
+[ ] 我知道如何用curl访问HTTP服务
+[ ] 我知道Nginx访问日志和错误日志在哪里
+[ ] 我知道如何查看CPU、内存、磁盘
+[ ] 我能部署一个监听8080端口的静态网站
+[ ] 我能说清楚网站访问不了的基础排查流程
+
+
+============================================================
+第1周结束后你应该掌握的一句话
+============================================================
+
+一个服务能被访问，需要满足：
+
+服务进程正常运行，
+端口处于监听状态，
+客户端能连接到服务器IP和端口，
+防火墙或安全组没有拦截，
+服务配置正确，
+日志中没有关键错误。
+
+
+============================================================
+下一周预告
+============================================================
+
+第2周建议学习主题：
+
+Nginx深入 + HTTP基础 + 常见502/503/504排查
+
