@@ -1,2 +1,2 @@
-# Linux-notes
+# Notes
 Just documenting my learning journey.
